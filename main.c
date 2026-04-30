@@ -91,11 +91,81 @@ int main(void)
                 }
             }
         }
+        // --- HAFTA 2: ÇARPIŞMA KONTROLLERİ ---
+        Rectangle frogRec = { frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height };
 
+        for(int i = 0; i < 3; i++) {
+            for(int j = 0; j < 2; j++) {
+                Rectangle carRec = { my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30 };
+                if (CheckCollisionRecs(frogRec, carRec)) {
+                    // Kurbağa ezildi, başa dön!
+                    frogPos.x = (float)screenWidth/2 - (float)frogImage.width/2;
+                    frogPos.y = (float)screenHeight - (float)frogImage.height - 20;
+                }
+            }
+        }
+        // -------------------------------------
+        // --- HAFTA 2: SUYA DÜŞME KONTROLLERİ ---
+        
+        
+        // Bizim örneğimizde kaldırım 500'de, asfalt 300'de başlıyor. 
+        // 300'ün altı su bölgesi demektir (Y ekseni yukarı çıktıkça azalır).
+        // 1. Kurbağa suyun olduğu bölgede mi? 
+       // Kurbağa gerçekten kütüklerin olduğu nehir hizasında mı?
+        if (frogPos.y < 430 && frogPos.y > 320) {
+            
+            bool kutugunUzerindeMi = false; // Başlangıçta kütükte değil sayıyoruz
+
+            // 2. Acaba herhangi bir kütüğe temas ediyor mu?
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 2; j++) {
+                    // Kütüğün görünmez çarpışma kutusu (Yüksekliği yine 30 alalım)
+                    Rectangle logRec = { logs[i][j].x, logs[i][j].y, logs[i][j].width, 30 };
+                    
+                    // Eğer kurbağanın kutusu bir kütüğe değerse:
+                    if (CheckCollisionRecs(frogRec, logRec)) {
+                        kutugunUzerindeMi = true; // Evet, kurtuldu!
+                        
+                        // EKSTRA GÖREV: Kurbağa kütüğün üzerindeyse, kütükle aynı hızda kaymalı!
+                        frogPos.x += logs[i][j].speed; 
+                    }
+                }
+            }
+
+            // 3. Eğer su bölgesindeyse VE hiçbir kütüğe değmiyorsa:
+            if (!kutugunUzerindeMi) {
+                // KURBAĞA BOĞULDU! Başa dön...
+                frogPos.x = (float)screenWidth/2 - (float)frogImage.width/2;
+                frogPos.y = (float)screenHeight - (float)frogImage.height - 20;
+            }
+        }
+        // ---------------------------------------
         // --- ÇİZİM AŞAMASI ---
         BeginDrawing();
+        
+        ClearBackground(RAYWHITE); 
 
-            ClearBackground(RAYWHITE); // Ekranı her karede temizle (Beyaz arka plan)
+        // ZEMİN BOYA İŞLEMLERİ
+        // --- ÇİZİM AŞAMASI ---
+        BeginDrawing();
+        ClearBackground(RAYWHITE); 
+
+        // 1. EN ÜST GÜVENLİ BÖLGEL (Finish Zone) - 0'dan 120'ye kadar
+        DrawRectangle(0, 0, 800, 120, DARKGRAY);
+
+        // 2. ÜST ASFALT (Arabaların yolu) - 120'den 320'ye kadar
+        DrawRectangle(0, 120, 800, 200, GRAY); 
+
+        // 3. NEHİR (Kütüklerin yolu) - 320'den 430'a kadar (Daha önce sabitlemiştik)
+        DrawRectangle(0, 320, 800, 110, SKYBLUE);
+
+        // 4. ALT ASFALT (Nehir ile Başlangıç arasındaki boşluk) - 430'dan 500'e kadar
+        DrawRectangle(0, 430, 800, 70, GRAY);
+
+        // 5. ALT KALDIRIM (Başlangıç bölgesi) - 500'den en aşağıya kadar
+        DrawRectangle(0, 500, 800, 100, DARKGRAY);
+        
+        // ... arkadaşının yaptığı kırmızı arabaları çizen döngüler burada kalmaya devam edecek // Ekranı her karede temizle (Beyaz arka plan)
             for(int i = 0; i < 3; i++) {
                 for(int j = 0; j < 2; j++) {
                     // Arabaları kırmızı dikdörtgen olarak çiziyoruz
