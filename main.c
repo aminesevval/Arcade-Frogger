@@ -95,7 +95,16 @@ int main(void)
         // --- ÇİZİM AŞAMASI ---
         BeginDrawing();
 
-            ClearBackground(RAYWHITE); // Ekranı her karede temizle (Beyaz arka plan)
+            ClearBackground(RAYWHITE);
+            ClearBackground(RAYWHITE);
+            ClearBackground(RAYWHITE); 
+
+        // SADECE ZEMİNİ BOYUYORUZ (Araba değil, yol ve kaldırım)
+        DrawRectangle(0, 500, 800, 100, DARKGRAY); // Alt kaldırım (Başlangıç)
+        DrawRectangle(0, 100, 800, 400, GRAY);     // Asfalt yol (Ortası)
+        DrawRectangle(0, 0, 800, 100, DARKGRAY);   // Üst kaldırım (Bitiş)
+        
+        // ... arkadaşının yaptığı kırmızı arabaları çizen döngüler burada kalmaya devam edecek // Ekranı her karede temizle (Beyaz arka plan)
             for(int i = 0; i < 3; i++) {
                 for(int j = 0; j < 2; j++) {
                     // Arabaları kırmızı dikdörtgen olarak çiziyoruz
