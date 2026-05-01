@@ -148,6 +148,8 @@ int main(void) {
     UnloadTexture(frogImage);
     CloseWindow();
     return 0;
+}
+ /* 
 }#include "raylib.h"
 typedef struct 
 {
@@ -231,3 +233,4 @@ int main() {
     CloseWindow();
     return 0;
 }
+    */
