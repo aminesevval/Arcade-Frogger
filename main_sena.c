@@ -12,7 +12,8 @@ int main() {
     // Ekran Boyutları
     const int screenWidth = 800;
     const int screenHeight = 600;
-    const int gridSize = 40; 
+    const int gridSize = 40;
+     int lives = 3;
 
     InitWindow(screenWidth, screenHeight, "Frogger - 2. Gelistirici Grid");
     SetTargetFPS(60);
@@ -36,12 +37,29 @@ int main() {
         }
     }
     while (!WindowShouldClose()) {
-        for(int i=0; i<3;i++){
-            for(int j=0; j<2; j++){
+for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 2; j++) {
+                // Arabayı yürüt
                 my_cars[i][j].x += my_cars[i][j].speed;
+
+                // Ekrandan çıkarsa başa döndür
                 if (my_cars[i][j].x > screenWidth) {
-                    my_cars[i][j].x = -my_cars[i][j].width; 
+                    my_cars[i][j].x = -my_cars[i][j].width;
                 }
+
+                // Çarpışma kontrolü
+                if (CheckCollisionCircleRec(frogPos, 15, (Rectangle){my_cars[i][j].x, my_cars[i][j].y, 80, 40})) {
+                    lives--;
+                    frogPos = (Vector2){ 400, 560 };
+                    if (lives <= 0) {
+                        lives = 3;
+                    }
+                }
+            }
+        }// KAZANMA KONTROLÜ (4. Hafta Görevi)
+        if (frogPos.y <= 40) { 
+            frogPos = (Vector2){ 400, 560 }; // Karşıya ulaşınca başa dön
+            // Buraya ileride skor ekleyebilirsin
         }
         }
         for(int i=0; i<3;i++){
@@ -54,6 +72,7 @@ int main() {
         }
         BeginDrawing();
         ClearBackground(RAYWHITE);
+        DrawText(TextFormat("CAN: %i", lives), 20, 20, 25, BLACK);
         for(int i=0; i<3;i++){
             for(int j=0; j<2; j++){
                 DrawRectangle(my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 40, RED);
