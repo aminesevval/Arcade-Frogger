@@ -1,10 +1,13 @@
 #include "raylib.h"
-
-typedef struct {
-    float x; float y; float speed; float width;
-} car;
-
+typedef struct 
+{
+    float x;
+    float y;    
+    float speed;
+    float width;
+}car;
 int main(void) {
+  
     int lives = 3;
     int level = 1; // Seviye değişkenini ekledik
     int score = 0; // Skor değişkeni 
@@ -182,5 +185,4 @@ int main(void) {
     UnloadTexture(frogImage);
     UnloadTexture(asfaltResmi);
     CloseWindow();
-    return 0;
-}
+    return 0;}
