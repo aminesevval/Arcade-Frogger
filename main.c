@@ -9,13 +9,23 @@ typedef struct
 int main(void) {
   
     int lives = 3;
-    int level = 1; // Seviye değişkenini ekledik
-    int score = 0; // Skor değişkeni 
+    int level = 1; 
+    int score = 0; 
+    float gameTimer = 30.0f;
+    float maxTimer = 30.0f;
     const int screenWidth = 800;
     const int screenHeight = 600;
     bool allFull = false; 
 
     InitWindow(screenWidth, screenHeight, "Arcade Frogger - Amine Sevval");
+    InitAudioDevice(); // Ses cihazını başlat
+
+    // Sesleri Yükle
+    Sound jumpSound = LoadSound("assets/atlama_sesi.wav");
+    Sound crashSound = LoadSound("assets/araba_carpmasi.wav");
+    Sound waterSound = LoadSound("assets/suya_dusme_sesi.wav");
+    Sound successSound = LoadSound("assets/yuvaya_girme_sesi.wav");
+    Sound levelUpSound = LoadSound("assets/level_atlama_sesi.wav");
 
     // --- 1. KURULUMLAR ---
     car my_cars[3][2];
@@ -24,7 +34,7 @@ int main(void) {
             my_cars[i][j].x = j * 340 + (i * 60);
             my_cars[i][j].y = 335 + (i * 60); 
             my_cars[i][j].width = 80;
-            my_cars[i][j].speed = 2.5f; // Başlangıç hızı
+            my_cars[i][j].speed = 2.5f;
         }
     }
 
@@ -53,21 +63,27 @@ int main(void) {
 
     while (!WindowShouldClose()) {
         // --- 2. GÜNCELLEME ---
-        
         if (lives > 0) {
+            if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || 
+                IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
+                PlaySound(jumpSound); // Her harekette atlama sesi
+            }
+
             if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) frogPos.x += speed;
             if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) frogPos.x -= speed;
             if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) frogPos.y -= speed;
             if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) frogPos.y += speed;
         }
 
-        // Sınırlar
         if (frogPos.x < 0) frogPos.x = 0;
         if (frogPos.x + frogImage.width > screenWidth) frogPos.x = (float)screenWidth - frogImage.width;
         if (frogPos.y < 0) frogPos.y = 0;
         if (frogPos.y + frogImage.height > screenHeight) frogPos.y = (float)screenHeight - frogImage.height;
 
-        // Nesne Hareketleri ve Çarpışmalar
+        if (lives > 0 && !allFull) {
+            gameTimer -= GetFrameTime();
+        }
+
         for(int i=0; i<3;i++){
             for(int j=0; j<2; j++){
                 my_cars[i][j].x += my_cars[i][j].speed;
@@ -76,16 +92,15 @@ int main(void) {
                 logs[i][j].x += logs[i][j].speed;
                 if (logs[i][j].x < -logs[i][j].width) logs[i][j].x = (float)screenWidth;
 
-                // Araba Çarpışması
                 if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height}, 
                                        (Rectangle){my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30})) {
+                    PlaySound(crashSound); // Araba çarpma sesi
                     frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
                     lives--;
                 }
             }
         }
 
-        // Nehir Kontrolü
         if (frogPos.y + frogImage.height < 320 && frogPos.y > 120) {
             bool onLog = false;
             for(int i = 0; i < 3; i++) {
@@ -98,15 +113,16 @@ int main(void) {
                 }
             }
             if (!onLog) {
+                PlaySound(waterSound); // Suya düşme sesi
                 frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
                 lives--;
             }
         }
 
-        // Yuva Kontrolü ve Level Atlama Mantığı
         allFull = true;
         for (int i = 0; i < 5; i++) {
             if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height}, finishZones[i]) && !zoneOccupied[i]) {
+                PlaySound(successSound); // Yuvaya girme sesi
                 zoneOccupied[i] = true;
                 score += 100;
                 frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
@@ -114,14 +130,20 @@ int main(void) {
             if (!zoneOccupied[i]) allFull = false;
         }
 
-        // EĞER HER YER DOLDUYSA: Level Atlat
+        if (gameTimer <= 0) {
+            PlaySound(waterSound); // Süre bitince (suya düşme sesiyle aynı efekt)
+            lives--;
+            gameTimer = maxTimer;
+            frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
+        }
+
         if (allFull) {
-            level++; // Seviyeyi artır
-            score += 500; // Bonus puan
-            for (int i = 0; i < 5; i++) zoneOccupied[i] = false; // Yuvaları boşalt
-            allFull = false; // Kazanma bayrağını indir
-            
-            // Hızları Artır
+            PlaySound(levelUpSound); // Level atlama sesi
+            level++;
+            score += 500;
+            gameTimer = maxTimer;
+            for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
+            allFull = false;
             for(int i=0; i<3; i++) {
                 for(int j=0; j<2; j++) {
                     my_cars[i][j].speed += 0.5f; 
@@ -130,15 +152,16 @@ int main(void) {
             }
         }
 
-        // --- 3. ÇİZİM ---
         BeginDrawing();
         ClearBackground(RAYWHITE);
-
-        DrawRectangle(0, 0, 800, 120, DARKGRAY);   // Finish
-        DrawRectangle(0, 120, 800, 200, SKYBLUE);  // Nehir
-        DrawRectangle(0, 320, 800, 200, GRAY);     // Yol
-        DrawTexture(asfaltResmi, 0, 320, WHITE);   // Yol Görseli
-        DrawRectangle(0, 520, 800, 80, DARKGRAY); // Start
+        DrawRectangle(0, 0, 800, 120, DARKGRAY); 
+        DrawRectangle(0, 120, 800, 200, SKYBLUE);
+        DrawRectangle(0, 320, 800, 200, GRAY); 
+        DrawTexture(asfaltResmi, 0, 320, WHITE);
+        DrawRectangle(0, 520, 800, 80, DARKGRAY);
+        DrawRectangle(20, 530, 200, 15, BLACK);
+        DrawRectangle(20, 530, (int)(200 * (gameTimer / maxTimer)), 15, GREEN);
+        DrawText("SURE", 230, 528, 18, RAYWHITE);
 
         for (int i = 0; i < 5; i++) {
             if (zoneOccupied[i]) DrawRectangleRec(finishZones[i], DARKGREEN); 
@@ -153,36 +176,28 @@ int main(void) {
         }
         
         if (lives > 0) DrawTextureV(frogImage, frogPos, WHITE);
-        
-        // Göstergeler - Temiz ve Aralıklı Düzen
         DrawText(TextFormat("CAN: %d", lives), 20, 565, 25, RED);
-        DrawText(TextFormat("LEVEL: %d", level), 250, 565, 25, GOLD); // 200 yerine 250 yaparak boşluk bıraktık
+        DrawText(TextFormat("LEVEL: %d", level), 250, 565, 25, GOLD);
         DrawText(TextFormat("SKOR: %05d", score), 580, 565, 25, GREEN);
 
-        // Game Over Ekranı
         if (lives <= 0) {
             DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
             DrawText("OYUN BITTI!", 300, 280, 40, RED);
-            DrawText("Tekrar oynamak icin R'ye bas", 250, 330, 20, LIGHTGRAY);
             if (IsKeyPressed(KEY_R)) {
-                lives = 3;
-                level = 1;
-                score = 0;
+                lives = 3; level = 1; score = 0; gameTimer = maxTimer;
                 for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
-                // Arabaların hızlarını başlangıca çek
                 for(int i=0; i<3; i++) {
                     for(int j=0; j<2; j++) {
-                        my_cars[i][j].speed = 2.5f;
-                        logs[i][j].speed = -2.0f;
+                        my_cars[i][j].speed = 2.5f; logs[i][j].speed = -2.0f;
                     }
                 }
             }
         }
-
         EndDrawing();
     }
 
     UnloadTexture(frogImage);
     UnloadTexture(asfaltResmi);
     CloseWindow();
-    return 0;}
+    return 0;
+}
