@@ -2,6 +2,8 @@
 
 typedef struct {
     float x; float y; float speed; float width;
+    float sinkLevel; // 0.0f (su üstü) - 1.0f (tam batık)
+    bool isBeingSteppedOn; // O an kurbağa üstünde mi?
 } car;
 
 int main(void) {
@@ -15,9 +17,8 @@ int main(void) {
     bool allFull = false; 
 
     InitWindow(screenWidth, screenHeight, "Arcade Frogger - Amine Sevval");
-    InitAudioDevice(); // Ses cihazını başlat
+    InitAudioDevice(); 
 
-    // Sesleri Yükle
     Sound jumpSound = LoadSound("assets/atlama_sesi.wav");
     Sound crashSound = LoadSound("assets/araba_carpmasi.wav");
     Sound waterSound = LoadSound("assets/suya_dusme_sesi.wav");
@@ -42,6 +43,8 @@ int main(void) {
             logs[i][j].y = 140 + (i * 65); 
             logs[i][j].width = 160;
             logs[i][j].speed = -2.00f;
+            logs[i][j].sinkLevel = 0.0f; 
+            logs[i][j].isBeingSteppedOn = false;
         }
     }
 
@@ -63,7 +66,8 @@ int main(void) {
         if (lives > 0) {
             if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || 
                 IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-                PlaySound(jumpSound); // Her harekette atlama sesi
+                SetSoundVolume(jumpSound, 0.2f);
+                PlaySound(jumpSound);
             }
 
             if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) frogPos.x += speed;
@@ -91,35 +95,49 @@ int main(void) {
 
                 if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height}, 
                                        (Rectangle){my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30})) {
-                    PlaySound(crashSound); // Araba çarpma sesi
+                    PlaySound(crashSound);
                     frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
                     lives--;
                 }
             }
         }
 
+        // Nehir ve Batma Mantığı
+        bool onLog = false;
         if (frogPos.y + frogImage.height < 320 && frogPos.y > 120) {
-            bool onLog = false;
             for(int i = 0; i < 3; i++) {
                 for(int j = 0; j < 2; j++) {
                     if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height}, 
                                            (Rectangle){logs[i][j].x, logs[i][j].y, logs[i][j].width, 30})) {
-                        onLog = true;
-                        frogPos.x += logs[i][j].speed;
+                        
+                        logs[i][j].isBeingSteppedOn = true;
+                        if (logs[i][j].sinkLevel < 0.8f) { // %80'den fazla batmamışsa taşı
+                            onLog = true;
+                            frogPos.x += logs[i][j].speed;
+                        }
+                    } else {
+                        logs[i][j].isBeingSteppedOn = false;
                     }
+
+                    if (logs[i][j].isBeingSteppedOn) logs[i][j].sinkLevel += GetFrameTime() * 0.7f;
+                    else logs[i][j].sinkLevel -= GetFrameTime() * 0.8f;
+
+                    if (logs[i][j].sinkLevel > 1.0f) logs[i][j].sinkLevel = 1.0f;
+                    if (logs[i][j].sinkLevel < 0.0f) logs[i][j].sinkLevel = 0.0f;
                 }
             }
             if (!onLog) {
-                PlaySound(waterSound); // Suya düşme sesi
+                PlaySound(waterSound);
                 frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
                 lives--;
             }
         }
 
+        // Skor ve Level Mantığı
         allFull = true;
         for (int i = 0; i < 5; i++) {
             if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height}, finishZones[i]) && !zoneOccupied[i]) {
-                PlaySound(successSound); // Yuvaya girme sesi
+                PlaySound(successSound);
                 zoneOccupied[i] = true;
                 score += 100;
                 frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
@@ -128,14 +146,14 @@ int main(void) {
         }
 
         if (gameTimer <= 0) {
-            PlaySound(waterSound); // Süre bitince (suya düşme sesiyle aynı efekt)
+            PlaySound(waterSound);
             lives--;
             gameTimer = maxTimer;
             frogPos = (Vector2){ (float)screenWidth/2 - (float)frogImage.width/2, (float)screenHeight - (float)frogImage.height - 20 };
         }
 
         if (allFull) {
-            PlaySound(levelUpSound); // Level atlama sesi
+            PlaySound(levelUpSound);
             level++;
             score += 500;
             gameTimer = maxTimer;
@@ -149,13 +167,31 @@ int main(void) {
             }
         }
 
+        // --- 3. ÇİZİM ---
         BeginDrawing();
         ClearBackground(RAYWHITE);
+
         DrawRectangle(0, 0, 800, 120, DARKGRAY); 
-        DrawRectangle(0, 120, 800, 200, SKYBLUE);
+        DrawRectangle(0, 120, 800, 200, SKYBLUE); // Nehir
+        
+        // Kütükleri Burada Çiziyoruz (Efektli)
+        for(int i=0; i<3; i++) {
+            for(int j=0; j<2; j++) {
+                DrawRectangle(logs[i][j].x, logs[i][j].y, logs[i][j].width, 30, Fade(BROWN, 1.0f - logs[i][j].sinkLevel));
+            }
+        }
+
         DrawRectangle(0, 320, 800, 200, GRAY); 
         DrawTexture(asfaltResmi, 0, 320, WHITE);
         DrawRectangle(0, 520, 800, 80, DARKGRAY);
+        
+        // Arabaları Çiz
+        for(int i=0; i<3; i++) {
+            for(int j=0; j<2; j++) {
+                DrawRectangle(my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30, RED);
+            }
+        }
+
         DrawRectangle(20, 530, 200, 15, BLACK);
         DrawRectangle(20, 530, (int)(200 * (gameTimer / maxTimer)), 15, GREEN);
         DrawText("SURE", 230, 528, 18, RAYWHITE);
@@ -163,13 +199,6 @@ int main(void) {
         for (int i = 0; i < 5; i++) {
             if (zoneOccupied[i]) DrawRectangleRec(finishZones[i], DARKGREEN); 
             else DrawRectangleLinesEx(finishZones[i], 3, GREEN);
-        }
-
-        for(int i = 0; i < 3; i++) {
-            for(int j = 0; j < 2; j++) {
-                DrawRectangle(my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30, RED);
-                DrawRectangle(logs[i][j].x, logs[i][j].y, logs[i][j].width, 30, BROWN);
-            }
         }
         
         if (lives > 0) DrawTextureV(frogImage, frogPos, WHITE);
@@ -193,7 +222,6 @@ int main(void) {
         EndDrawing();
     }
 
-    // Belleği Temizle
     UnloadTexture(frogImage); UnloadTexture(asfaltResmi);
     UnloadSound(jumpSound); UnloadSound(crashSound); UnloadSound(waterSound);
     UnloadSound(successSound); UnloadSound(levelUpSound);
