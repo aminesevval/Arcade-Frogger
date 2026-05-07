@@ -1,20 +1,13 @@
 #include "raylib.h"
-
-typedef struct {
-    float x; float y; float speed; float width;
-    float sinkLevel; 
-    bool isBeingSteppedOn; 
-} car;
-
+typedef struct 
+{
+    float x;
+    float y;    
+    float speed;
+    float width;
+}car;
 int main(void) {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
-
-    // 1. ADIM: Motoru Başlat (Sadece BİR kez)
-    InitWindow(screenWidth, screenHeight, "Arcade Frogger - Amine Sevval");
-    InitAudioDevice(); 
-
-    // 2. ADIM: Değişkenler
+  
     int lives = 3;
     int level = 1; 
     int score = 0; 
@@ -219,8 +212,51 @@ int main(void) {
             else DrawRectangleLinesEx(finishZones[i], 3, GREEN);
         }
         
+<<<<<<< HEAD:main.c
         if (lives > 0) DrawTextureV(frogImage, frogPos, WHITE);
         DrawText(TextFormat("CAN: %d  LEVEL: %d  SKOR: %05d", lives, level, score), 20, 565, 25, RAYWHITE);
+=======
+if (lives > 0) 
+{  // <-- Bu parantezi açmamız lazım!
+    
+    // Çarpışma Kontrolü (Arabalar için)
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 2; j++) { // Senin arabaların 2 katlı olduğu için bunu ekledik
+           if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, 50, 50}, my_cars[i][j].rec)) {
+                lives--;              
+                frogPos.x = 400;      // Kurbağayı ışınla
+                frogPos.y = 400;
+            }
+        }
+    }
+// ... (burada çarpışma kontrolü for döngüleri bitti)
+    } // Bu parantez çarpışma for döngüsünün sonu (yaklaşık 190. satır)
+
+    // --- 4. HAFTA: BURAYA EKLE (Satır 191 gibi) ---
+    if (frogPos.y <= 50) { 
+        score += 100;      
+        level++;           
+        frogPos.x = 400;   // Başlangıca ışınla
+        frogPos.y = 400;
+        
+        // Arabaları biraz hızlandır (Zorluk artsın)
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 2; j++) {
+                my_cars[i][j].speed += 0.5f; 
+            }
+        }
+    }
+    // ----------------------------------------------
+
+    // Kurbağayı Çiz
+    DrawTextureV(frogImage, frogPos, WHITE);
+    // Kurbağayı Çiz
+    DrawTextureV(frogImage, frogPos, WHITE);
+} 
+        DrawText(TextFormat("CAN: %d", lives), 20, 565, 25, RED);
+        DrawText(TextFormat("LEVEL: %d", level), 250, 565, 25, GOLD);
+        DrawText(TextFormat("SKOR: %05d", score), 580, 565, 25, GREEN);
+>>>>>>> hafta2-carpisma:main.cpp
 
         if (lives <= 0) {
             DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
@@ -234,10 +270,16 @@ int main(void) {
         EndDrawing();
     }
 
+<<<<<<< HEAD:main.c
     // TEMİZLİK
     UnloadTexture(frogImage); UnloadTexture(asfaltResmi); UnloadTexture(yolDokusu);
     UnloadSound(jumpSound); UnloadSound(crashSound); UnloadSound(waterSound);
     UnloadSound(successSound); UnloadSound(levelUpSound);
     CloseAudioDevice(); CloseWindow();
+=======
+    UnloadTexture(frogImage);
+    UnloadTexture(asfaltResmi);
+    CloseWindow();
+>>>>>>> hafta2-carpisma:main.cpp
     return 0;
 }
