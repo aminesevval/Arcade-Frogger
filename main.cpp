@@ -188,7 +188,27 @@ if (lives > 0)
             }
         }
     }
+// ... (burada çarpışma kontrolü for döngüleri bitti)
+    } // Bu parantez çarpışma for döngüsünün sonu (yaklaşık 190. satır)
 
+    // --- 4. HAFTA: BURAYA EKLE (Satır 191 gibi) ---
+    if (frogPos.y <= 50) { 
+        score += 100;      
+        level++;           
+        frogPos.x = 400;   // Başlangıca ışınla
+        frogPos.y = 400;
+        
+        // Arabaları biraz hızlandır (Zorluk artsın)
+        for (int i = 0; i < 5; i++) {
+            for (int j = 0; j < 2; j++) {
+                my_cars[i][j].speed += 0.5f; 
+            }
+        }
+    }
+    // ----------------------------------------------
+
+    // Kurbağayı Çiz
+    DrawTextureV(frogImage, frogPos, WHITE);
     // Kurbağayı Çiz
     DrawTextureV(frogImage, frogPos, WHITE);
 } 
