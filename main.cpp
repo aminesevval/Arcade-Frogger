@@ -175,7 +175,23 @@ int main(void) {
             }
         }
         
-        if (lives > 0) DrawTextureV(frogImage, frogPos, WHITE);
+if (lives > 0) 
+{  // <-- Bu parantezi açmamız lazım!
+    
+    // Çarpışma Kontrolü (Arabalar için)
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j < 2; j++) { // Senin arabaların 2 katlı olduğu için bunu ekledik
+           if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, 50, 50}, my_cars[i][j].rec)) {
+                lives--;              
+                frogPos.x = 400;      // Kurbağayı ışınla
+                frogPos.y = 400;
+            }
+        }
+    }
+
+    // Kurbağayı Çiz
+    DrawTextureV(frogImage, frogPos, WHITE);
+} 
         DrawText(TextFormat("CAN: %d", lives), 20, 565, 25, RED);
         DrawText(TextFormat("LEVEL: %d", level), 250, 565, 25, GOLD);
         DrawText(TextFormat("SKOR: %05d", score), 580, 565, 25, GREEN);
