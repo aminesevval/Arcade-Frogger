@@ -71,6 +71,7 @@ int main(void) {
     float yolHizi = 100.0f;
 
     Sound jumpSound = LoadSound("assets/atlama_sesi.wav");
+    SetSoundVolume(jumpSound, 0.1f);
     Sound crashSound = LoadSound("assets/araba_carpmasi.wav");
     Sound waterSound = LoadSound("assets/suya_dusme_sesi.wav");
     Sound successSound = LoadSound("assets/yuvaya_girme_sesi.wav");
@@ -233,6 +234,9 @@ int main(void) {
             if (allFull) {
                 PlaySound(levelUpSound);
                 level++;
+                if (level % 3 == 0 && lives < 5) {
+                    lives++;
+                }
                 score += 500;
                 gameTimer = maxTimer;
                 for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
