@@ -16,6 +16,35 @@ typedef struct {
     bool isBeingSteppedOn;
 } log;
 
+void DrawHeart(float x, float y, float size, Color color)
+{
+    float radius = size * 0.30f;
+
+    // Sol üst daire
+    DrawCircle(
+        x - radius,
+        y - radius / 2,
+        radius,
+        color
+    );
+
+    // Sağ üst daire
+    DrawCircle(
+        x + radius,
+        y - radius / 2,
+        radius,
+        color
+    );
+
+    // Alt üçgen
+    DrawTriangle(
+        (Vector2){x - size * 0.60f, y},
+        (Vector2){x + size * 0.60f, y},
+        (Vector2){x, y + size * 0.85f},
+        color
+    );
+}
+
 int main(void) {
     const int screenWidth = 800;
     const int screenHeight = 600;
@@ -29,6 +58,8 @@ int main(void) {
     float gameTimer = 30.0f;
     float maxTimer = 30.0f;
     bool allFull = false;
+    float hitTimer = 0.0f;
+
 
     // Görsel ve Ses Yükleme
     Texture2D yolDokusu = LoadTexture("assets/yol.jpg");
@@ -87,6 +118,8 @@ int main(void) {
             }
         } 
         else {
+            if (hitTimer > 0)
+                hitTimer -= GetFrameTime();
             if (yolDokusu.id > 0) {
                 yolKaymaX += yolHizi * GetFrameTime();
                 if (yolKaymaX >= (float)yolDokusu.width) yolKaymaX = 0;
@@ -111,6 +144,19 @@ int main(void) {
 
             if (lives > 0 && !allFull) gameTimer -= GetFrameTime();
 
+            if (gameTimer <= 0 && lives > 0) {
+
+                gameTimer = maxTimer;
+
+                frogPos = (Vector2){
+                    (float)screenWidth / 2 - (float)frogImage.width / 2,
+                    (float)screenHeight - (float)frogImage.height - 20
+                };
+
+                lives--;
+                hitTimer = 1.0f;
+            }
+
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 2; j++) {
                     my_cars[i][j].x += my_cars[i][j].speed;
@@ -119,11 +165,21 @@ int main(void) {
                     logs[i][j].x += logs[i][j].speed;
                     if (logs[i][j].x < -logs[i][j].width) logs[i][j].x = (float)screenWidth;
 
-                    if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height},
-                                           (Rectangle){my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30})) {
+                    if (hitTimer <= 0 &&
+                        CheckCollisionRecs(
+                            (Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height},
+                            (Rectangle){my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30}))
+                    {
                         PlaySound(crashSound);
-                        frogPos = (Vector2){(float)screenWidth / 2 - (float)frogImage.width / 2, (float)screenHeight - (float)frogImage.height - 20};
+
+                        frogPos = (Vector2){
+                            (float)screenWidth / 2 - (float)frogImage.width / 2,
+                            (float)screenHeight - (float)frogImage.height - 20
+                        };
+
                         lives--;
+
+                        hitTimer = 1.0f;
                     }
                 }
             }
@@ -148,10 +204,18 @@ int main(void) {
                         if (logs[i][j].sinkLevel < 0.0f) logs[i][j].sinkLevel = 0.0f;
                     }
                 }
-                if (!onLog) {
+                if (!onLog && hitTimer <= 0) {
+
                     PlaySound(waterSound);
-                    frogPos = (Vector2){(float)screenWidth / 2 - (float)frogImage.width / 2, (float)screenHeight - (float)frogImage.height - 20};
+
+                    frogPos = (Vector2){
+                        (float)screenWidth / 2 - (float)frogImage.width / 2,
+                        (float)screenHeight - (float)frogImage.height - 20
+                    };
+
                     lives--;
+
+                    hitTimer = 1.0f;
                 }
             }
 
@@ -162,7 +226,6 @@ int main(void) {
                     zoneOccupied[i] = true;
                     score += 100;
                     frogPos = (Vector2){(float)screenWidth / 2 - (float)frogImage.width / 2, (float)screenHeight - (float)frogImage.height - 20};
-                    gameTimer = maxTimer;
                 }
                 if (!zoneOccupied[i]) allFull = false;
             }
@@ -171,6 +234,7 @@ int main(void) {
                 PlaySound(levelUpSound);
                 level++;
                 score += 500;
+                gameTimer = maxTimer;
                 for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
                 for (int i = 0; i < 3; i++) {
                     for (int j = 0; j < 2; j++) {
@@ -235,9 +299,34 @@ int main(void) {
                 else DrawRectangleLinesEx(finishZones[i], 3, GREEN);
             }
 
-            if (lives > 0) DrawTextureV(frogImage, frogPos, WHITE);
+            if (lives > 0) {
+
+                // Hasar aldıysa yanıp sön
+                if (hitTimer > 0) {
+
+                    // Her birkaç framede bir görünmez yap
+                    if (((int)(hitTimer * 10)) % 2 == 0) {
+                        DrawTextureV(frogImage, frogPos, WHITE);
+                    }
+
+                }
+                else {
+                    DrawTextureV(frogImage, frogPos, WHITE);
+                }
+            }
+
+            // --- KALPLERİ ÇİZ ---
+            for (int i = 1; i <= 3; i++) {
+                float posX = 40.0f + (i * 45.0f); // Aralarını biraz daha açtık
+                float posY = 565.0f; 
+
+                if (i <= lives) {
+                    DrawHeart(posX, posY, 30, RED); 
+                } else {
+                    DrawHeart(posX, posY, 30, GRAY); 
+                }
+            }
             
-            DrawText(TextFormat("CAN: %d", lives), 20, 565, 25, RED);
             DrawText(TextFormat("LEVEL: %d", level), 250, 565, 25, GOLD);
             DrawText(TextFormat("SKOR: %05d", score), 580, 565, 25, GREEN);
 
