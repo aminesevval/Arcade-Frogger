@@ -66,6 +66,13 @@ int main(void) {
     Texture2D frogImage = LoadTexture("assets/frog.png");
     Texture2D asfaltResmi = LoadTexture("assets/asfalt.png");
     Texture2D girisResmi = LoadTexture("assets/giris.png");
+    Texture2D kalpTexture = LoadTexture("assets/kalp.png");
+    
+Texture2D carTextures[3]; // 3 tane araba için yer açtık
+carTextures[0] = LoadTexture("assets/araba1.png"); // Dosya adların neyse onu yaz
+carTextures[1] = LoadTexture("assets/araba2.png");
+carTextures[2] = LoadTexture("assets/araba3.png");
+Texture2D logTexture = LoadTexture("assets/log.png");
     bool inMenu = true;
     float yolKaymaX = 0.0f;
     float yolHizi = 100.0f;
@@ -265,12 +272,23 @@ int main(void) {
             DrawRectangle(0, 0, 800, 120, DARKGRAY);
             DrawRectangle(0, 120, 800, 200, SKYBLUE);
 
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 2; j++) {
-                    DrawRectangle(logs[i][j].x, logs[i][j].y, logs[i][j].width, 30, Fade(BROWN, 1.0f - logs[i][j].sinkLevel));
-                }
-            }
-
+            // --- KÜTÜKLERİ GÖRSELLE ÇİZ ---
+for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+        if (logTexture.id > 0) {
+            // Kaynak resmin tamamını alıyoruz
+            Rectangle sourceRec = { 0.0f, 0.0f, (float)logTexture.width, (float)logTexture.height };
+            // Kütüğü tam olarak kodundaki genişliğe (width) sığdırıyoruz
+            Rectangle destRec = { logs[i][j].x, logs[i][j].y, logs[i][j].width, 70 }; 
+            
+            // Çizim ve batma efekti
+            DrawTexturePro(logTexture, sourceRec, destRec, (Vector2){0, 0}, 0.0f, Fade(WHITE, 1.0f - logs[i][j].sinkLevel));
+        } else {
+            // Görsel yüklenmezse diye eski kahverengi kutu (güvenlik önlemi)
+            DrawRectangle(logs[i][j].x, logs[i][j].y, logs[i][j].width, 70, Fade(BROWN, 1.0f - logs[i][j].sinkLevel));
+        }
+    }
+}
             DrawRectangle(0, 320, 800, 200, GRAY);
             if (yolDokusu.id > 0) {
                 for (int i = 0; i < (screenWidth / yolDokusu.width) + 2; i++) {
@@ -289,11 +307,19 @@ int main(void) {
 
             DrawRectangle(0, 520, 800, 80, DARKGRAY);
 
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 2; j++) {
-                    DrawRectangle(my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30, RED);
-                }
-            }
+            // --- ARAÇLARI ÇİZ ---
+for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+        if (carTextures[i].id > 0) {
+            // Arabalar çok büyükse 0.1f yap, çok küçükse 0.2f veya 0.3f yap
+            float scale = 0.008f; 
+            DrawTextureEx(carTextures[i], (Vector2){my_cars[i][j].x, my_cars[i][j].y}, 0.0f, scale, WHITE);
+        } else {
+            // Görsel yüklenmezse diye yedek kırmızı kutu
+            DrawRectangle(my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30, RED);
+        }
+    }
+}
 
             DrawRectangle(20, 530, 200, 15, BLACK);
             DrawRectangle(20, 530, (int)(200 * (gameTimer / maxTimer)), 15, GREEN);
@@ -318,16 +344,23 @@ int main(void) {
                     DrawTextureV(frogImage, frogPos, WHITE);
                 }
             }
+// --- KALPLERİ ÇİZ ---
+            for (int i = 1; i <= lives; i++) {
+                float posX = -70.0f + (i * 45.0f);
+                float posY = 525.0f; // Level yazısıyla aynı hizaya çektik
 
-            // --- KALPLERİ ÇİZ ---
-            for (int i = 1; i <= 3; i++) {
-                float posX = 40.0f + (i * 45.0f); // Aralarını biraz daha açtık
-                float posY = 565.0f; 
-
-                if (i <= lives) {
-                    DrawHeart(posX, posY, 30, RED); 
-                } else {
-                    DrawHeart(posX, posY, 30, GRAY); 
+                // Görsel başarıyla yüklendiyse
+                if (kalpTexture.id > 0) {
+                    // O devasa resmi (ne boyutta olursa olsun) zorla 50x50'lik bir alana sıkıştırıyoruz
+                    Rectangle sourceRec = { 0.0f, 0.0f, (float)kalpTexture.width, (float)kalpTexture.height };
+                    Rectangle destRec = { posX, posY, 150.0f, 100.0f }; 
+                    
+                    DrawTexturePro(kalpTexture, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                } 
+                // Eğer görsel DOSYA YOLU veya UZANTISI yüzünden okunamadıysa
+                else {
+                    // Ekrana KIRMIZI KARELER çiz ki görselin hiç yüklenemediğini kör olmadan görelim
+                    DrawRectangle((int)posX, (int)posY, 40, 40, RED);
                 }
             }
             
@@ -346,7 +379,11 @@ int main(void) {
         }
         EndDrawing();
     }
-
+    UnloadTexture(logTexture);
+    for (int i = 0; i < 3; i++) {
+        UnloadTexture(carTextures[i]); // 3 arabayı da hafızadan siliyoruz
+    }
+    UnloadTexture(kalpTexture); // Kalbi hafızadan sil
     UnloadTexture(frogImage);
     UnloadTexture(asfaltResmi);
     UnloadTexture(yolDokusu);
