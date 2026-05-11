@@ -73,6 +73,8 @@ carTextures[0] = LoadTexture("assets/araba1.png"); // Dosya adların neyse onu y
 carTextures[1] = LoadTexture("assets/araba2.png");
 carTextures[2] = LoadTexture("assets/araba3.png");
 Texture2D logTexture = LoadTexture("assets/log.png");
+Texture2D yuvaBos = LoadTexture("assets/yuva_bos.png");
+Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
     bool inMenu = true;
     float yolKaymaX = 0.0f;
     float yolHizi = 100.0f;
@@ -289,21 +291,20 @@ for (int i = 0; i < 3; i++) {
         }
     }
 }
-            DrawRectangle(0, 320, 800, 200, GRAY);
-            if (yolDokusu.id > 0) {
-                for (int i = 0; i < (screenWidth / yolDokusu.width) + 2; i++) {
-                    DrawTextureRec(yolDokusu,
-                                   (Rectangle){0, 0, (float)yolDokusu.width, (float)yolDokusu.height},
-                                   (Vector2){(float)(i * yolDokusu.width) - yolKaymaX, 320},
-                                   WHITE);
-                }
+            // --- YENİ NEON ASFALTI ÇİZ ---
+            if (asfaltResmi.id > 0) {
+                // Kaynak resmin (asfalt.png) tamamını alıyoruz
+                Rectangle sourceRec = { 0.0f, 0.0f, (float)asfaltResmi.width, (float)asfaltResmi.height };
+                // Yolu ekranda nereye (Y:320) ve hangi boyutta (800x200) çizeceğimiz
+                Rectangle destRec = { 0.0f, 320.0f, 800.0f, 200.0f }; 
+                
+                DrawTexturePro(asfaltResmi, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+            } else {
+                // Görsel yüklenemezse yedek gri zemin
+                DrawRectangle(0, 320, 800, 200, GRAY);
             }
 
-            for (int i = -1; i < 10; i++) {
-                float xPos = i * 100 + ((int)yolKaymaX % 100);
-                DrawRectangle(xPos, 385, 40, 5, WHITE);
-                DrawRectangle(xPos, 455, 40, 5, WHITE);
-            }
+           
 
             DrawRectangle(0, 520, 800, 80, DARKGRAY);
 
@@ -324,9 +325,35 @@ for (int i = 0; i < 3; i++) {
             DrawRectangle(20, 530, 200, 15, BLACK);
             DrawRectangle(20, 530, (int)(200 * (gameTimer / maxTimer)), 15, GREEN);
 
+            // --- HEDEFLERİ (YUVANIN KENDİSİNİ) ÇİZ ---
             for (int i = 0; i < 5; i++) {
-                if (zoneOccupied[i]) DrawRectangleRec(finishZones[i], DARKGREEN);
-                else DrawRectangleLinesEx(finishZones[i], 3, GREEN);
+                
+                // GÖRSELİ BÜYÜTME AYARI:
+                // Normal kutudan daha büyük çizmek için yeni bir dikdörtgen (destRec) oluşturuyoruz.
+                // Ortalı durması için X ve Y'den 15 piksel geriye çektik, genişlik ve yüksekliği 80 yaptık.
+                // Eğer hala küçük gelirse 80 sayılarını 90 veya 100 yapabilirsin, -15'leri de -20 falan yaparsın.
+                Rectangle destRec = { finishZones[i].x - 15, finishZones[i].y - 15, 120, 120 };
+
+                if (zoneOccupied[i]) {
+                    // YUVA DOLUYSA: Dolu görselini çiz
+                    if (yuvaDolu.id > 0) {
+                        Rectangle sourceRec = { 0.0f, 0.0f, (float)yuvaDolu.width, (float)yuvaDolu.height };
+                        // finishZones[i] yerine kendi hazırladığımız büyük destRec'i kullanıyoruz
+                        DrawTexturePro(yuvaDolu, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                    } else {
+                        DrawRectangleRec(finishZones[i], DARKGREEN); 
+                    }
+                } 
+                else {
+                    // YUVA BOŞSA: Boş görselini çiz
+                    if (yuvaBos.id > 0) {
+                        Rectangle sourceRec = { 0.0f, 0.0f, (float)yuvaBos.width, (float)yuvaBos.height };
+                        // Burada da aynı büyük destRec'i kullanıyoruz
+                        DrawTexturePro(yuvaBos, sourceRec, destRec, (Vector2){0, 0}, 0.0f, WHITE);
+                    } else {
+                        DrawRectangleLinesEx(finishZones[i], 3, GREEN); 
+                    }
+                }
             }
 
             if (lives > 0) {
@@ -393,6 +420,8 @@ for (int i = 0; i < 3; i++) {
     UnloadSound(waterSound);
     UnloadSound(successSound);
     UnloadSound(levelUpSound);
+    UnloadTexture(yuvaBos);
+    UnloadTexture(yuvaDolu);
     CloseAudioDevice();
     CloseWindow();
 
