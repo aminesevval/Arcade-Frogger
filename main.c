@@ -59,6 +59,10 @@ int main(void) {
     float maxTimer = 30.0f;
     bool allFull = false;
     float hitTimer = 0.0f;
+    float denizKaymaX = 0.0f; // Denizin yatayda kayma miktarını tutacak
+    float frogScale = 0.12f;
+    float speed = 5.0f;
+    float waterGraceTimer = 0.1f;
 
 
     // Görsel ve Ses Yükleme
@@ -67,6 +71,8 @@ int main(void) {
     Texture2D asfaltResmi = LoadTexture("assets/asfalt.png");
     Texture2D girisResmi = LoadTexture("assets/giris.png");
     Texture2D kalpTexture = LoadTexture("assets/kalp.png");
+    // Değişken ismini denizResmi yapıyoruz (Senin çizim kodunla uyumlu olsun)
+    Texture2D denizResmi = LoadTexture("assets/deniz.png");
     
 Texture2D carTextures[3]; // 3 tane araba için yer açtık
 carTextures[0] = LoadTexture("assets/araba1.png"); // Dosya adların neyse onu yaz
@@ -109,8 +115,12 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
         }
     }
 
-    Vector2 frogPos = {(float)screenWidth / 2 - (float)frogImage.width / 2, (float)screenHeight - (float)frogImage.height - 20};
-    float speed = 5.0f;
+
+        // frogPos başlangıç noktasını tamir ediyoruz:
+    Vector2 frogPos = {
+        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2, 
+        (float)screenHeight - (frogImage.height * frogScale) - 15 
+    };
 
     Rectangle finishZones[5];
     bool zoneOccupied[5] = {false, false, false, false, false};
@@ -147,10 +157,14 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) frogPos.y += speed;
             }
 
+            // 1. Ekran Sınırları Kontrolü
+            // frogImage.width yerine (frogImage.width * frogScale) kullanıyoruz
             if (frogPos.x < 0) frogPos.x = 0;
-            if (frogPos.x + (float)frogImage.width > (float)screenWidth) frogPos.x = (float)screenWidth - (float)frogImage.width;
+            if (frogPos.x + (frogImage.width * frogScale) > screenWidth) 
+                frogPos.x = screenWidth - (frogImage.width * frogScale);
             if (frogPos.y < 0) frogPos.y = 0;
-            if (frogPos.y + (float)frogImage.height > (float)screenHeight) frogPos.y = (float)screenHeight - (float)frogImage.height;
+            if (frogPos.y + (frogImage.height * frogScale) > screenHeight) 
+                frogPos.y = screenHeight - (frogImage.height * frogScale);
 
             if (lives > 0 && !allFull) gameTimer -= GetFrameTime();
 
@@ -158,10 +172,11 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
                 gameTimer = maxTimer;
 
-                frogPos = (Vector2){
-                    (float)screenWidth / 2 - (float)frogImage.width / 2,
-                    (float)screenHeight - (float)frogImage.height - 20
-                };
+                // Can kaybetme bloklarının (lives--) içindeki frogPos atamasını şu yap:
+            frogPos = (Vector2){
+                (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
+                (float)screenHeight - (frogImage.height * frogScale) - 10
+            };
 
                 lives--;
                 hitTimer = 1.0f;
@@ -175,16 +190,17 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                     logs[i][j].x += logs[i][j].speed;
                     if (logs[i][j].x < -logs[i][j].width) logs[i][j].x = (float)screenWidth;
 
-                    if (hitTimer <= 0 &&
-                        CheckCollisionRecs(
-                            (Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height},
-                            (Rectangle){my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30}))
+                    // 2. Araba Çarpışma Kontrolü
+                    if (CheckCollisionRecs(
+                        (Rectangle){frogPos.x, frogPos.y, (frogImage.width * frogScale), (frogImage.height * frogScale)},
+                        (Rectangle){my_cars[i][j].x, my_cars[i][j].y, my_cars[i][j].width, 30}))
                     {
                         PlaySound(crashSound);
 
+                        // Öldüğünde veya resetlendiğinde burayı kullan:
                         frogPos = (Vector2){
-                            (float)screenWidth / 2 - (float)frogImage.width / 2,
-                            (float)screenHeight - (float)frogImage.height - 20
+                            (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
+                            (float)screenHeight - (frogImage.height * frogScale) - 15
                         };
 
                         lives--;
@@ -194,19 +210,27 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 }
             }
 
+            // --- NEHİR VE KÜTÜK SİSTEMİ (KESİN ÇÖZÜM) ---
             bool onLog = false;
-            if (frogPos.y + (float)frogImage.height < 320 && frogPos.y > 120) {
+            // Nehir alanı sınırları: 120 (üst) ile 320 (asfaltın başı) arası
+            if (frogPos.y < 310 && frogPos.y > 115) { 
                 for (int i = 0; i < 3; i++) {
                     for (int j = 0; j < 2; j++) {
-                        if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height},
-                                               (Rectangle){logs[i][j].x, logs[i][j].y, logs[i][j].width, 30})) {
+                        // KÜTÜK ÇARPIŞMA KONTROLÜ (70 piksel yüksekliğinde, seni asla ıskalamaz)
+                        if (CheckCollisionRecs(
+                            (Rectangle){frogPos.x, frogPos.y, (frogImage.width * frogScale), (frogImage.height * frogScale)},
+                            (Rectangle){logs[i][j].x, logs[i][j].y + 10, logs[i][j].width, 50})) 
+                        {
                             logs[i][j].isBeingSteppedOn = true;
                             if (logs[i][j].sinkLevel < 0.8f) {
                                 onLog = true;
-                                frogPos.x += logs[i][j].speed;
+                                frogPos.x += logs[i][j].speed; // Kütükle beraber kaydır
                             }
-                        } else logs[i][j].isBeingSteppedOn = false;
+                        } else {
+                            logs[i][j].isBeingSteppedOn = false;
+                        }
 
+                        // Batma mekaniği
                         if (logs[i][j].isBeingSteppedOn) logs[i][j].sinkLevel += GetFrameTime() * 0.7f;
                         else logs[i][j].sinkLevel -= GetFrameTime() * 0.8f;
 
@@ -214,28 +238,36 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                         if (logs[i][j].sinkLevel < 0.0f) logs[i][j].sinkLevel = 0.0f;
                     }
                 }
-                if (!onLog && hitTimer <= 0) {
 
-                    PlaySound(waterSound);
-
+                // EĞER NEHİRDEYSEK VE HİÇBİR KÜTÜĞE BASMIYORSAK:
+                if (!onLog && hitTimer <= 0 && frogPos.y < 300) {
+                    PlaySound(waterSound); // SES ŞİMDİ GELECEK
+                    
+                    // Başlangıç noktasına ışınla
                     frogPos = (Vector2){
-                        (float)screenWidth / 2 - (float)frogImage.width / 2,
-                        (float)screenHeight - (float)frogImage.height - 20
+                        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
+                        (float)screenHeight - (frogImage.height * frogScale) - 15
                     };
-
                     lives--;
-
                     hitTimer = 1.0f;
                 }
             }
 
             allFull = true;
             for (int i = 0; i < 5; i++) {
-                if (CheckCollisionRecs((Rectangle){frogPos.x, frogPos.y, (float)frogImage.width, (float)frogImage.height}, finishZones[i]) && !zoneOccupied[i]) {
+                if (CheckCollisionRecs((Rectangle){
+                    frogPos.x,
+                    frogPos.y,
+                    frogImage.width * frogScale,
+                    frogImage.height * frogScale
+                }, finishZones[i]) && !zoneOccupied[i]) {
                     PlaySound(successSound);
                     zoneOccupied[i] = true;
                     score += 100;
-                    frogPos = (Vector2){(float)screenWidth / 2 - (float)frogImage.width / 2, (float)screenHeight - (float)frogImage.height - 20};
+                    frogPos = (Vector2){
+                        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
+                        (float)screenHeight - (frogImage.height * frogScale) - 15
+                    };
                 }
                 if (!zoneOccupied[i]) allFull = false;
             }
@@ -271,8 +303,31 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             DrawText("BASLAMAK ICIN ENTER'A BAS", 200, 500, 25, DARKGRAY);
         } 
         else {
+            // --- DENİZ AKIŞI (TAMİR EDİLDİ) ---
+            if (denizResmi.id > 0) {
+                // Denizi kütüklerin hızına göre kaydırıyoruz
+                // logs[0][0].speed değeri -2.0f olduğu için deniz sola kayacak
+                denizKaymaX += logs[0][0].speed; 
+
+                // EĞER RESİM SOLA KAYIYORSA (Hız negatifse)
+                if (denizKaymaX <= -denizResmi.width) {
+                    denizKaymaX = 0;
+                }
+                
+                // EĞER RESİM SAĞA KAYIYORSA (Hız pozitifse)
+                if (denizKaymaX >= denizResmi.width) {
+                    denizKaymaX = 0;
+                }
+
+                // Yan yana iki parça çizerek sonsuz döngü sağlıyoruz
+                // Y konumunu senin koduna göre 120'ye sabitledim
+                DrawTextureEx(denizResmi, (Vector2){denizKaymaX, 120}, 0.0f, 1.0f, WHITE);
+                DrawTextureEx(denizResmi, (Vector2){denizKaymaX + denizResmi.width, 120}, 0.0f, 1.0f, WHITE);
+                DrawTextureEx(denizResmi, (Vector2){denizKaymaX - denizResmi.width, 120}, 0.0f, 1.0f, WHITE); // Güvenlik için bir tane de sola
+            } else {
+                DrawRectangle(0, 120, 800, 200, SKYBLUE);
+            }
             DrawRectangle(0, 0, 800, 120, DARKGRAY);
-            DrawRectangle(0, 120, 800, 200, SKYBLUE);
 
             // --- KÜTÜKLERİ GÖRSELLE ÇİZ ---
 for (int i = 0; i < 3; i++) {
@@ -357,18 +412,12 @@ for (int i = 0; i < 3; i++) {
             }
 
             if (lives > 0) {
-
-                // Hasar aldıysa yanıp sön
-                if (hitTimer > 0) {
-
-                    // Her birkaç framede bir görünmez yap
-                    if (((int)(hitTimer * 10)) % 2 == 0) {
-                        DrawTextureV(frogImage, frogPos, WHITE);
-                    }
-
-                }
-                else {
-                    DrawTextureV(frogImage, frogPos, WHITE);
+                if (hitTimer > 0 && ((int)(hitTimer * 10)) % 2 == 0) {
+                    // Hasar aldığında yanıp sönme efektiyle çiz
+                    DrawTextureEx(frogImage, frogPos, 0.0f, frogScale, WHITE);
+                } else {
+                    // Normal çizim
+                    DrawTextureEx(frogImage, frogPos, 0.0f, frogScale, WHITE);
                 }
             }
 // --- KALPLERİ ÇİZ ---
@@ -400,7 +449,10 @@ for (int i = 0; i < 3; i++) {
                 if (IsKeyPressed(KEY_R)) {
                     lives = 3; level = 1; score = 0; gameTimer = maxTimer;
                     for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
-                    frogPos = (Vector2){(float)screenWidth / 2 - (float)frogImage.width / 2, (float)screenHeight - (float)frogImage.height - 20};
+                    frogPos = (Vector2){
+                        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
+                        (float)screenHeight - (frogImage.height * frogScale) - 15
+                    };
                 }
             }
         }
@@ -422,6 +474,7 @@ for (int i = 0; i < 3; i++) {
     UnloadSound(levelUpSound);
     UnloadTexture(yuvaBos);
     UnloadTexture(yuvaDolu);
+    UnloadTexture(denizResmi);
     CloseAudioDevice();
     CloseWindow();
 
