@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include <math.h>
 
 typedef struct {
     float x;
@@ -14,7 +15,7 @@ typedef struct {
     float width;
     float sinkLevel;
     bool isBeingSteppedOn;
-} log;
+} Log;
 
 void DrawHeart(float x, float y, float size, Color color)
 {
@@ -64,6 +65,14 @@ int main(void) {
     float speed = 5.0f;
     float waterGraceTimer = 0.1f;
 
+    bool isJumping = false;
+
+    Vector2 jumpStartPos;
+    Vector2 jumpTargetPos;
+
+    float jumpTimer = 0.0f;
+    float jumpDuration = 0.15f;
+
 
     // Görsel ve Ses Yükleme
     Texture2D yolDokusu = LoadTexture("assets/yol.jpg");
@@ -103,7 +112,7 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
         }
     }
 
-    log logs[3][2];
+    Log logs[3][2];
     for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 2; j++) {
             logs[i][j].x = (float)j * 400;
@@ -146,6 +155,7 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             }
 
             if (lives > 0) {
+                /*
                 if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) ||
                     IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
                     PlaySound(jumpSound);
@@ -154,7 +164,58 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) frogPos.x += speed;
                 if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) frogPos.x -= speed;
                 if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) frogPos.y -= speed;
-                if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) frogPos.y += speed;
+                if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) frogPos.y += speed;*/
+
+                if (!isJumping)
+                {
+                    Vector2 move = {0, 0};
+
+                    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
+                        move.y = -60;
+
+                    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+                        move.y = 60;
+
+                    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+                        move.x = -60;
+
+                    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+                        move.x = 60;
+
+                    if (move.x != 0 || move.y != 0)
+                    {
+                        PlaySound(jumpSound);
+
+                        isJumping = true;
+
+                        jumpStartPos = frogPos;
+
+                        jumpTargetPos = (Vector2){
+                            frogPos.x + move.x,
+                            frogPos.y + move.y
+                        };
+
+                        jumpTimer = 0.0f;
+                    }
+                }
+            }
+            if (isJumping)
+            {
+                jumpTimer += GetFrameTime();
+
+                float t = jumpTimer / jumpDuration;
+
+                if (t >= 1.0f)
+                {
+                    t = 1.0f;
+                    isJumping = false;
+                }
+
+                frogPos.x = jumpStartPos.x +
+                    (jumpTargetPos.x - jumpStartPos.x) * t;
+
+                frogPos.y = jumpStartPos.y +
+                    (jumpTargetPos.y - jumpStartPos.y) * t;
             }
 
             // 1. Ekran Sınırları Kontrolü
@@ -241,35 +302,62 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
                 // EĞER NEHİRDEYSEK VE HİÇBİR KÜTÜĞE BASMIYORSAK:
                 if (!onLog && hitTimer <= 0 && frogPos.y < 300) {
-                    PlaySound(waterSound); // SES ŞİMDİ GELECEK
-                    
-                    // Başlangıç noktasına ışınla
+
+                    PlaySound(waterSound);
+
+                    // ZIPLAMA ANINDA ÖLDÜYSE ZIPLAMAYI İPTAL ET
+                    isJumping = false;
+
+                    // Kurbağayı başlangıca gönder
                     frogPos = (Vector2){
                         (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
                         (float)screenHeight - (frogImage.height * frogScale) - 15
                     };
+
                     lives--;
+
                     hitTimer = 1.0f;
                 }
             }
 
-            allFull = true;
             for (int i = 0; i < 5; i++) {
-                if (CheckCollisionRecs((Rectangle){
-                    frogPos.x,
-                    frogPos.y,
-                    frogImage.width * frogScale,
-                    frogImage.height * frogScale
-                }, finishZones[i]) && !zoneOccupied[i]) {
+
+                if (CheckCollisionRecs(
+                    (Rectangle){
+                        frogPos.x,
+                        frogPos.y,
+                        frogImage.width * frogScale,
+                        frogImage.height * frogScale
+                    },
+                    finishZones[i]
+                ) && !zoneOccupied[i]) {
+
                     PlaySound(successSound);
+
                     zoneOccupied[i] = true;
+
                     score += 100;
+
                     frogPos = (Vector2){
                         (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
                         (float)screenHeight - (frogImage.height * frogScale) - 15
                     };
+
+                    isJumping = false;
+
+                    break;
                 }
-                if (!zoneOccupied[i]) allFull = false;
+            }
+
+            // TÜM YUVALAR DOLU MU KONTROLÜ
+            allFull = true;
+
+            for (int i = 0; i < 5; i++) {
+
+                if (!zoneOccupied[i]) {
+                    allFull = false;
+                    break;
+                }
             }
 
             if (allFull) {
@@ -412,12 +500,26 @@ for (int i = 0; i < 3; i++) {
             }
 
             if (lives > 0) {
-                if (hitTimer > 0 && ((int)(hitTimer * 10)) % 2 == 0) {
-                    // Hasar aldığında yanıp sönme efektiyle çiz
-                    DrawTextureEx(frogImage, frogPos, 0.0f, frogScale, WHITE);
-                } else {
-                    // Normal çizim
-                    DrawTextureEx(frogImage, frogPos, 0.0f, frogScale, WHITE);
+
+                // Eğer hitTimer aktifse ve sayı çiftse çizme
+                if (!(hitTimer > 0 && ((int)(hitTimer * 10)) % 2 == 0)) {
+
+                    float jumpOffset = 0.0f;
+
+                    if (isJumping)
+                    {
+                        float t = jumpTimer / jumpDuration;
+
+                        jumpOffset = sinf(t * 3.141592f) * -25.0f;
+                    }
+
+                    DrawTextureEx(
+                        frogImage,
+                        (Vector2){frogPos.x, frogPos.y + jumpOffset},
+                        0.0f,
+                        frogScale,
+                        WHITE
+                    );
                 }
             }
 // --- KALPLERİ ÇİZ ---
@@ -448,6 +550,14 @@ for (int i = 0; i < 3; i++) {
                 DrawText("OYUN BITTI! RESTART ICIN 'R'", 200, 280, 30, RED);
                 if (IsKeyPressed(KEY_R)) {
                     lives = 3; level = 1; score = 0; gameTimer = maxTimer;
+                    for (int i = 0; i < 3; i++) {
+                        for (int j = 0; j < 2; j++) {
+
+                            my_cars[i][j].speed = 2.5f;
+
+                            logs[i][j].speed = -2.0f;
+                        }
+                    }
                     for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
                     frogPos = (Vector2){
                         (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
