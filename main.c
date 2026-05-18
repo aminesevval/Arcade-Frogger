@@ -47,11 +47,15 @@ void DrawHeart(float x, float y, float size, Color color)
 }
 
 int main(void) {
-    const int screenWidth = 800;
-    const int screenHeight = 600;
+    const int gameWidth = 800;
+    const int gameHeight = 600;
 
-    InitWindow(screenWidth, screenHeight, "Arcade Frogger - Amine Sevval");
+    InitWindow(1280, 720, "Arcade Frogger - Amine Sevval");
+    SetWindowState(FLAG_WINDOW_RESIZABLE);
+    ToggleFullscreen();
     InitAudioDevice();
+
+    RenderTexture2D target = LoadRenderTexture(gameWidth, gameHeight);
 
     int lives = 3;
     int level = 1;
@@ -127,8 +131,8 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
         // frogPos başlangıç noktasını tamir ediyoruz:
     Vector2 frogPos = {
-        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2, 
-        (float)screenHeight - (frogImage.height * frogScale) - 15 
+        (float)gameWidth / 2 - (frogImage.width * frogScale) / 2, 
+        (float)gameHeight - (frogImage.height * frogScale) - 15 
     };
 
     Rectangle finishZones[5];
@@ -221,11 +225,11 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             // 1. Ekran Sınırları Kontrolü
             // frogImage.width yerine (frogImage.width * frogScale) kullanıyoruz
             if (frogPos.x < 0) frogPos.x = 0;
-            if (frogPos.x + (frogImage.width * frogScale) > screenWidth) 
-                frogPos.x = screenWidth - (frogImage.width * frogScale);
+            if (frogPos.x + (frogImage.width * frogScale) > gameWidth) 
+                frogPos.x = gameWidth - (frogImage.width * frogScale);
             if (frogPos.y < 0) frogPos.y = 0;
-            if (frogPos.y + (frogImage.height * frogScale) > screenHeight) 
-                frogPos.y = screenHeight - (frogImage.height * frogScale);
+            if (frogPos.y + (frogImage.height * frogScale) > gameHeight) 
+                frogPos.y = gameHeight - (frogImage.height * frogScale);
 
             if (lives > 0 && !allFull) gameTimer -= GetFrameTime();
 
@@ -235,8 +239,8 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
                 // Can kaybetme bloklarının (lives--) içindeki frogPos atamasını şu yap:
             frogPos = (Vector2){
-                (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
-                (float)screenHeight - (frogImage.height * frogScale) - 10
+                (float)gameWidth / 2 - (frogImage.width * frogScale) / 2,
+                (float)gameHeight - (frogImage.height * frogScale) - 10
             };
 
                 lives--;
@@ -247,10 +251,10 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 for (int j = 0; j < 2; j++) {
                     my_cars[i][j].x += my_cars[i][j].speed;
                     if (my_cars[i][j].x < -my_cars[i][j].width)
-                        my_cars[i][j].x = screenWidth;
+                        my_cars[i][j].x = gameWidth;
 
                     logs[i][j].x += logs[i][j].speed;
-                    if (logs[i][j].x < -logs[i][j].width) logs[i][j].x = (float)screenWidth;
+                    if (logs[i][j].x < -logs[i][j].width) logs[i][j].x = (float)gameWidth;
 
                     // 2. Araba Çarpışma Kontrolü
                     if (CheckCollisionRecs(
@@ -261,8 +265,8 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
                         // Öldüğünde veya resetlendiğinde burayı kullan:
                         frogPos = (Vector2){
-                            (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
-                            (float)screenHeight - (frogImage.height * frogScale) - 15
+                            (float)gameWidth / 2 - (frogImage.width * frogScale) / 2,
+                            (float)gameHeight - (frogImage.height * frogScale) - 15
                         };
 
                         lives--;
@@ -311,8 +315,8 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
                     // Kurbağayı başlangıca gönder
                     frogPos = (Vector2){
-                        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
-                        (float)screenHeight - (frogImage.height * frogScale) - 15
+                        (float)gameWidth / 2 - (frogImage.width * frogScale) / 2,
+                        (float)gameHeight - (frogImage.height * frogScale) - 15
                     };
 
                     lives--;
@@ -340,8 +344,8 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                     score += 100;
 
                     frogPos = (Vector2){
-                        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
-                        (float)screenHeight - (frogImage.height * frogScale) - 15
+                        (float)gameWidth / 2 - (frogImage.width * frogScale) / 2,
+                        (float)gameHeight - (frogImage.height * frogScale) - 15
                     };
 
                     isJumping = false;
@@ -381,8 +385,9 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
         }
 
         // --- ÇİZİM ---
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
+        BeginTextureMode(target);
+
+        ClearBackground(BLACK);
 
         if (inMenu) {
            // Resmi ekran boyutuna (800x600) sığdırarak çiziyoruz
@@ -547,26 +552,55 @@ for (int i = 0; i < 3; i++) {
             DrawText(TextFormat("SKOR: %05d", score), 580, 565, 25, GREEN);
 
             if (lives <= 0) {
-                DrawRectangle(0, 0, screenWidth, screenHeight, Fade(BLACK, 0.8f));
+                DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.8f));
                 DrawText("OYUN BITTI! RESTART ICIN 'R'", 200, 280, 30, RED);
                 if (IsKeyPressed(KEY_R)) {
                     lives = 3; level = 1; score = 0; gameTimer = maxTimer;
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 2; j++) {
 
-                            my_cars[i][j].speed = 2.5f;
+                            my_cars[i][j].x = (float)j * 340 + (i * 60);
+                            my_cars[i][j].y = 335.0f + (i * 60);
+                            my_cars[i][j].speed = -2.5f;
 
+                            logs[i][j].x = (float)j * 400;
+                            logs[i][j].y = 140.0f + (i * 65);
                             logs[i][j].speed = -2.0f;
+
+                            logs[i][j].sinkLevel = 0.0f;
+                            logs[i][j].isBeingSteppedOn = false;
                         }
                     }
                     for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
                     frogPos = (Vector2){
-                        (float)screenWidth / 2 - (frogImage.width * frogScale) / 2,
-                        (float)screenHeight - (frogImage.height * frogScale) - 15
+                        (float)gameWidth / 2 - (frogImage.width * frogScale) / 2,
+                        (float)gameHeight - (frogImage.height * frogScale) - 15
                     };
                 }
             }
         }
+        EndTextureMode();
+
+        BeginDrawing();
+
+        ClearBackground(BLACK);
+
+        float scaleX = (float)GetScreenWidth() / gameWidth;
+        float scaleY = (float)GetScreenHeight() / gameHeight;
+
+        float scale = scaleX < scaleY ? scaleX : scaleY;
+
+        float offsetX = (GetScreenWidth() - (gameWidth * scale)) * 0.5f;
+        float offsetY = (GetScreenHeight() - (gameHeight * scale)) * 0.5f;
+
+        DrawTexturePro(
+            target.texture,
+            (Rectangle){0, 0, gameWidth, -gameHeight},
+            (Rectangle){offsetX, offsetY, gameWidth * scale, gameHeight * scale},
+            (Vector2){0, 0},
+            0.0f,
+            WHITE
+        );
         EndDrawing();
     }
     UnloadTexture(logTexture);
@@ -586,6 +620,8 @@ for (int i = 0; i < 3; i++) {
     UnloadTexture(yuvaBos);
     UnloadTexture(yuvaDolu);
     UnloadTexture(denizResmi);
+    UnloadRenderTexture(target);
+
     CloseAudioDevice();
     CloseWindow();
 
