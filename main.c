@@ -108,7 +108,7 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             my_cars[i][j].x = (float)j * 340 + (i * 60);
             my_cars[i][j].y = 335.0f + (i * 60);
             my_cars[i][j].width = 80.0f;
-            my_cars[i][j].speed = 2.5f;
+            my_cars[i][j].speed = -2.5f;
         }
     }
 
@@ -246,7 +246,8 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             for (int i = 0; i < 3; i++) {
                 for (int j = 0; j < 2; j++) {
                     my_cars[i][j].x += my_cars[i][j].speed;
-                    if (my_cars[i][j].x > screenWidth) my_cars[i][j].x = -my_cars[i][j].width;
+                    if (my_cars[i][j].x < -my_cars[i][j].width)
+                        my_cars[i][j].x = screenWidth;
 
                     logs[i][j].x += logs[i][j].speed;
                     if (logs[i][j].x < -logs[i][j].width) logs[i][j].x = (float)screenWidth;
