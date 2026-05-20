@@ -375,7 +375,7 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
                 for (int i = 0; i < 3; i++) {
                     for (int j = 0; j < 2; j++) {
-                        my_cars[i][j].speed += 0.5f;
+                        my_cars[i][j].speed -= 0.5f;
                         logs[i][j].speed -= 0.5f;
                     }
                 }
