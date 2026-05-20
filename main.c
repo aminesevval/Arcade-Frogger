@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include <math.h>
+#include <stdio.h>
 
 typedef struct {
     float x;
@@ -60,6 +61,14 @@ int main(void) {
     int lives = 3;
     int level = 1;
     int score = 0;
+    int highScore = 0;
+    FILE *file = fopen("highscore.txt", "r");
+
+    if(file != NULL)
+    {
+        fscanf(file,"%d",&highScore);
+        fclose(file);
+    }
     float gameTimer = 30.0f;
     float maxTimer = 30.0f;
     bool allFull = false;
@@ -159,16 +168,6 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             }
 
             if (lives > 0) {
-                /*
-                if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) ||
-                    IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S)) {
-                    PlaySound(jumpSound);
-                }
-
-                if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) frogPos.x += speed;
-                if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) frogPos.x -= speed;
-                if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) frogPos.y -= speed;
-                if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) frogPos.y += speed;*/
 
                 if (!isJumping)
                 {
@@ -548,10 +547,43 @@ for (int i = 0; i < 3; i++) {
                 }
             }
             
-            DrawText(TextFormat("LEVEL: %d", level), 250, 565, 25, GOLD);
-            DrawText(TextFormat("SKOR: %05d", score), 580, 565, 25, GREEN);
+            DrawText(
+                TextFormat("HIGH SCORE: %05d", highScore),
+                500,
+                535,
+                20,
+                YELLOW
+            );
+
+            DrawText(
+                TextFormat("SKOR: %05d", score),
+                580,
+                565,
+                25,
+                GREEN
+            );
+
+            DrawText(
+                TextFormat("LEVEL: %d", level),
+                250,
+                565,
+                25,
+                GOLD
+            );
 
             if (lives <= 0) {
+                if(score > highScore)
+                {
+                    highScore = score;
+
+                    FILE *file = fopen("highscore.txt","w");
+
+                    if(file != NULL)
+                    {
+                        fprintf(file,"%d",highScore);
+                        fclose(file);
+                    }
+                }
                 DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.8f));
                 DrawText("OYUN BITTI! RESTART ICIN 'R'", 200, 280, 30, RED);
                 if (IsKeyPressed(KEY_R)) {
