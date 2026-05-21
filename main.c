@@ -137,6 +137,8 @@ carTextures[2] = LoadTexture("assets/araba3.png");
 Texture2D logTexture = LoadTexture("assets/log.png");
 Texture2D yuvaBos = LoadTexture("assets/yuva_bos.png");
 Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
+Texture2D sampiyonEkrani = LoadTexture("assets/sampiyon.png");
+bool yeniSampiyon = false;
     bool inMenu = true;
     float yolKaymaX = 0.0f;
     float yolHizi = 100.0f;
@@ -417,18 +419,19 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
             }
 
             // EKLENDİ: Oyun oynanırken can biterse ne olacak?
-            if (lives <= 0) {
+           if (lives <= 0) {
                 bool isHighScore = false;
                 for (int i = 0; i < MAX_SCORES; i++) {
                     if (score > highScores[i].score) { isHighScore = true; break; }
                 }
 
                 if (isHighScore) {
-                    gameState = STATE_NAME_ENTRY; // Rekor varsa İsim ekranına git
+                    gameState = STATE_NAME_ENTRY;
                     nameInput[0] = '\0';
                     letterCount = 0;
                 } else {
-                    gameState = STATE_GAME_OVER; // Yoksa direkt Game Over
+                    yeniSampiyon = false;
+                    gameState = STATE_GAME_OVER;
                 }
             }
         } // <-- Bu süslü parantez 'else if (gameState == STATE_PLAYING)' bloğunu kapatır
@@ -472,6 +475,13 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                         fclose(f);
                     }
                 }
+                
+                if (rank == 0) {
+                    yeniSampiyon = true;
+                } else {
+                    yeniSampiyon = false;
+                }
+
                 gameState = STATE_GAME_OVER;
             }
         }
@@ -496,7 +506,7 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
                 frogPos = (Vector2){ (float)gameWidth / 2 - (frogImage.width * frogScale) / 2, (float)gameHeight - (frogImage.height * frogScale) - 15 };
                 
-                gameState = STATE_PLAYING;
+                gameState = STATE_MENU;
             }
         }
 
@@ -715,17 +725,28 @@ for (int i = 0; i < 3; i++) {
             }
             // EKLENDİ: Oyun Bitti Ekranı Çizimi
             else if (gameState == STATE_GAME_OVER) {
-                DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.85f));
-                DrawText("OYUN BITTI!", 290, 100, 40, RED);
-                
-                // Liderlik tablosunu ekrana çiz
-                DrawText("TOP 5 SKORLAR", 310, 180, 25, YELLOW);
-                for(int i = 0; i < MAX_SCORES; i++) {
-                    DrawText(TextFormat("%d. %s", i+1, highScores[i].name), 280, 230 + (i*30), 20, WHITE);
-                    DrawText(TextFormat("%d", highScores[i].score), 480, 230 + (i*30), 20, GREEN);
-                }
+                if (yeniSampiyon) {
+                    Rectangle sourceRec = { 0.0f, 0.0f, (float)sampiyonEkrani.width, (float)sampiyonEkrani.height };
+                    Rectangle destRec = { 0.0f, 0.0f, (float)gameWidth, (float)gameHeight };
+                    DrawTexturePro(sampiyonEkrani, sourceRec, destRec, (Vector2){ 0, 0 }, 0.0f, WHITE);
+                    
+                    int nameWidth = MeasureText(highScores[0].name, 40);
+                    DrawText(highScores[0].name, (gameWidth - nameWidth) / 2, 430, 40, WHITE);
+                    
+                    int scoreWidth = MeasureText(TextFormat("SKOR: %04d", highScores[0].score), 40);
+                    DrawText(TextFormat("SKOR: %04d", highScores[0].score), (gameWidth - scoreWidth) / 2, 490, 40, GREEN);
+                } else {
+                    DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.85f));
+                    DrawText("OYUN BITTI!", 290, 100, 40, RED);
+                    
+                    DrawText("TOP 5 SKORLAR", 310, 180, 25, YELLOW);
+                    for(int i = 0; i < MAX_SCORES; i++) {
+                        DrawText(TextFormat("%d. %s", i+1, highScores[i].name), 280, 230 + (i*30), 20, WHITE);
+                        DrawText(TextFormat("%d", highScores[i].score), 480, 230 + (i*30), 20, WHITE);
+                    }
 
-                DrawText("RESTART ICIN 'R' VEYA KOLDAN 'Y' TUSUNA BAS", 100, 450, 25, LIGHTGRAY);
+                    DrawText("ANA MENU ICIN 'R' VEYA KOLDAN 'Y' TUSUNA BAS", 100, 450, 25, LIGHTGRAY);
+                }
             }
         }
         EndTextureMode();
@@ -770,6 +791,7 @@ for (int i = 0; i < 3; i++) {
     UnloadTexture(yuvaDolu);
     UnloadTexture(denizResmi);
     UnloadRenderTexture(target);
+    UnloadTexture(sampiyonEkrani);
 
     CloseAudioDevice();
     CloseWindow();
