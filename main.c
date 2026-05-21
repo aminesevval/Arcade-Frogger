@@ -205,35 +205,26 @@ bool yeniSampiyon = false;
 
             if (lives > 0) {
 
-                if (!isJumping)
-                {
+                if (!isJumping) {
                     Vector2 move = {0, 0};
 
-                    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
-                        move.y = -60;
+                    // YENİ: Analog stick değerlerini okuyoruz 
+                    bool stickUp = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) < -0.5f;
+                    bool stickDown = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_Y) > 0.5f;
+                    bool stickLeft = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) < -0.5f;
+                    bool stickRight = GetGamepadAxisMovement(0, GAMEPAD_AXIS_LEFT_X) > 0.5f;
 
-                    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
-                        move.y = 60;
+                    // HEM KLAVYE HEM OKLAR HEM JOYSTICK
+                    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP) || stickUp) move.y = -60;
+                    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN) || stickDown) move.y = 60;
+                    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT) || stickLeft) move.x = -60;
+                    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) || stickRight) move.x = 60;
 
-                    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
-                        move.x = -60;
-
-                    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
-                        move.x = 60;
-
-                    if (move.x != 0 || move.y != 0)
-                    {
+                    if (move.x != 0 || move.y != 0) {
                         PlaySound(jumpSound);
-
                         isJumping = true;
-
                         jumpStartPos = frogPos;
-
-                        jumpTargetPos = (Vector2){
-                            frogPos.x + move.x,
-                            frogPos.y + move.y
-                        };
-
+                        jumpTargetPos = (Vector2){ frogPos.x + move.x, frogPos.y + move.y };
                         jumpTimer = 0.0f;
                     }
                 }
