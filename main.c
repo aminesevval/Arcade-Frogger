@@ -155,7 +155,7 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
     while (!WindowShouldClose()) {
         // --- GÜNCELLEME ---
         if (inMenu) {
-            if (IsKeyPressed(KEY_ENTER)) {
+            if (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_MIDDLE_RIGHT) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
                 inMenu = false;
             }
         } 
@@ -173,16 +173,16 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 {
                     Vector2 move = {0, 0};
 
-                    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W))
+                    if (IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_UP))
                         move.y = -60;
 
-                    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S))
+                    if (IsKeyPressed(KEY_DOWN) || IsKeyPressed(KEY_S) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_DOWN))
                         move.y = 60;
 
-                    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A))
+                    if (IsKeyPressed(KEY_LEFT) || IsKeyPressed(KEY_A) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_LEFT))
                         move.x = -60;
 
-                    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D))
+                    if (IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_D) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_LEFT_FACE_RIGHT))
                         move.x = 60;
 
                     if (move.x != 0 || move.y != 0)
@@ -585,8 +585,8 @@ for (int i = 0; i < 3; i++) {
                     }
                 }
                 DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.8f));
-                DrawText("OYUN BITTI! RESTART ICIN 'R'", 200, 280, 30, RED);
-                if (IsKeyPressed(KEY_R)) {
+                DrawText("RESTART ICIN 'R' VEYA KOLDAN 'Y' TUSUNA BAS", 100, 280, 30, RED);
+                if (IsKeyPressed(KEY_R) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
                     lives = 3; level = 1; score = 0; gameTimer = maxTimer;
                     for (int i = 0; i < 3; i++) {
                         for (int j = 0; j < 2; j++) {
