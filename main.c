@@ -1,6 +1,24 @@
 #include "raylib.h"
 #include <math.h>
 #include <stdio.h>
+#include <string.h> 
+
+#define MAX_NAME_LEN 10 
+#define MAX_SCORES 5    
+
+
+typedef struct {
+    char name[MAX_NAME_LEN + 1];
+    int score;
+} PlayerScore;
+
+typedef enum {
+    STATE_MENU,
+    STATE_PLAYING,
+    STATE_NAME_ENTRY,
+    STATE_GAME_OVER
+} GameState;
+
 
 typedef struct {
     float x;
@@ -62,21 +80,37 @@ int main(void) {
     int level = 1;
     int score = 0;
     int highScore = 0;
-    FILE *file = fopen("highscore.txt", "r");
+    // EKLENDİ: Oyun Durumu (Menü ile başlatıyoruz)
+    GameState gameState = STATE_MENU;
 
+    // EKLENDİ: Liderlik Tablosu Dizisi (Başlangıçta içini boşaltıyoruz)
+    PlayerScore highScores[MAX_SCORES];
+    for (int i = 0; i < MAX_SCORES; i++) {
+        strcpy(highScores[i].name, "---");
+        highScores[i].score = 0;
+    }
+
+    // EKLENDİ: Dosyadan İlk 5 Skoru Okuma
+    FILE *file = fopen("highscores.txt", "r"); // Dikkat: Dosya adı artık çoğul (highscores.txt)
     if(file != NULL)
     {
-        fscanf(file,"%d",&highScore);
+        for (int i = 0; i < MAX_SCORES; i++) {
+            // Dosyadaki ismi ve skoru okur
+            fscanf(file, "%10s %d", highScores[i].name, &highScores[i].score);
+        }
         fclose(file);
     }
+
+    // EKLENDİ: İsim Girme Ekranı Değişkenleri
+    char nameInput[MAX_NAME_LEN + 1] = "\0";
+    int letterCount = 0;
     float gameTimer = 30.0f;
     float maxTimer = 30.0f;
     bool allFull = false;
     float hitTimer = 0.0f;
     float denizKaymaX = 0.0f; // Denizin yatayda kayma miktarını tutacak
     float frogScale = 0.12f;
-    float speed = 5.0f;
-    float waterGraceTimer = 0.1f;
+   
 
     bool isJumping = false;
 
@@ -154,12 +188,12 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
     while (!WindowShouldClose()) {
         // --- GÜNCELLEME ---
-        if (inMenu) {
+        if (gameState == STATE_MENU) {
             if (IsKeyPressed(KEY_ENTER) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_MIDDLE_RIGHT) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_DOWN)) {
-                inMenu = false;
+                gameState = STATE_PLAYING;
             }
         } 
-        else {
+        else if (gameState == STATE_PLAYING) {
             if (hitTimer > 0)
                 hitTimer -= GetFrameTime();
             if (yolDokusu.id > 0) {
@@ -381,6 +415,89 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
                 }
                 allFull = false;
             }
+
+            // EKLENDİ: Oyun oynanırken can biterse ne olacak?
+            if (lives <= 0) {
+                bool isHighScore = false;
+                for (int i = 0; i < MAX_SCORES; i++) {
+                    if (score > highScores[i].score) { isHighScore = true; break; }
+                }
+
+                if (isHighScore) {
+                    gameState = STATE_NAME_ENTRY; // Rekor varsa İsim ekranına git
+                    nameInput[0] = '\0';
+                    letterCount = 0;
+                } else {
+                    gameState = STATE_GAME_OVER; // Yoksa direkt Game Over
+                }
+            }
+        } // <-- Bu süslü parantez 'else if (gameState == STATE_PLAYING)' bloğunu kapatır
+
+        // EKLENDİ: İsim Girme Ekranındaki Klavye Kontrolleri
+        else if (gameState == STATE_NAME_ENTRY) {
+            int key = GetCharPressed();
+            while (key > 0) {
+                if ((key >= 33) && (key <= 125) && (letterCount < MAX_NAME_LEN)) {
+                    nameInput[letterCount] = (char)key;
+                    nameInput[letterCount+1] = '\0';
+                    letterCount++;
+                }
+                key = GetCharPressed();
+            }
+
+            if (IsKeyPressed(KEY_BACKSPACE)) {
+                letterCount--;
+                if (letterCount < 0) letterCount = 0;
+                nameInput[letterCount] = '\0';
+            }
+
+            if (IsKeyPressed(KEY_ENTER) && letterCount > 0) {
+                int rank = -1;
+                for(int i = 0; i < MAX_SCORES; i++) {
+                    if (score > highScores[i].score) { rank = i; break; }
+                }
+
+                if (rank != -1) {
+                    for (int i = MAX_SCORES - 1; i > rank; i--) {
+                        highScores[i] = highScores[i-1];
+                    }
+                    strcpy(highScores[rank].name, nameInput);
+                    highScores[rank].score = score;
+                    
+                    FILE *f = fopen("highscores.txt", "w");
+                    if (f != NULL) {
+                        for(int i = 0; i < MAX_SCORES; i++) {
+                            fprintf(f, "%s %d\n", highScores[i].name, highScores[i].score);
+                        }
+                        fclose(f);
+                    }
+                }
+                gameState = STATE_GAME_OVER;
+            }
+        }
+
+        // EKLENDİ: Oyun Bitti (Game Over) Ekranında Yeniden Başlatma Algoritması
+        else if (gameState == STATE_GAME_OVER) {
+            if (IsKeyPressed(KEY_R) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
+                lives = 3; level = 1; score = 0; gameTimer = maxTimer;
+                for (int i = 0; i < 3; i++) {
+                    for (int j = 0; j < 2; j++) {
+                        my_cars[i][j].x = (float)j * 340 + (i * 60);
+                        my_cars[i][j].y = 335.0f + (i * 60);
+                        my_cars[i][j].speed = -2.5f;
+
+                        logs[i][j].x = (float)j * 400;
+                        logs[i][j].y = 140.0f + (i * 65);
+                        logs[i][j].speed = -2.0f;
+                        logs[i][j].sinkLevel = 0.0f;
+                        logs[i][j].isBeingSteppedOn = false;
+                    }
+                }
+                for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
+                frogPos = (Vector2){ (float)gameWidth / 2 - (frogImage.width * frogScale) / 2, (float)gameHeight - (frogImage.height * frogScale) - 15 };
+                
+                gameState = STATE_PLAYING;
+            }
         }
 
         // --- ÇİZİM ---
@@ -388,12 +505,19 @@ Texture2D yuvaDolu = LoadTexture("assets/yuva_dolu.png");
 
         ClearBackground(BLACK);
 
-        if (inMenu) {
-           // Resmi ekran boyutuna (800x600) sığdırarak çiziyoruz
+        if (gameState == STATE_MENU) {
             Rectangle sourceRec = { 0.0f, 0.0f, (float)girisResmi.width, (float)girisResmi.height };
             Rectangle destRec = { 0.0f, 0.0f, 800.0f, 600.0f };
             DrawTexturePro(girisResmi, sourceRec, destRec, (Vector2){ 0, 0 }, 0.0f, WHITE);
             DrawText("BASLAMAK ICIN ENTER'A BAS", 200, 500, 25, DARKGRAY);
+
+            // EKLENDİ: Menüde Liderlik Tablosunu Göster
+            DrawRectangle(550, 20, 230, 180, Fade(BLACK, 0.7f));
+            DrawText("TOP 5", 620, 30, 20, YELLOW);
+            for(int i = 0; i < MAX_SCORES; i++) {
+                DrawText(TextFormat("%d. %s", i+1, highScores[i].name), 560, 60 + (i*20), 15, WHITE);
+                DrawText(TextFormat("%d", highScores[i].score), 710, 60 + (i*20), 15, GREEN);
+            }
         } 
         else {
             // --- DENİZ AKIŞI (TAMİR EDİLDİ) ---
@@ -548,7 +672,7 @@ for (int i = 0; i < 3; i++) {
             }
             
             DrawText(
-                TextFormat("HIGH SCORE: %05d", highScore),
+                TextFormat("HIGH SCORE: %05d", highScores[0].score),
                 500,
                 535,
                 20,
@@ -571,44 +695,37 @@ for (int i = 0; i < 3; i++) {
                 GOLD
             );
 
-            if (lives <= 0) {
-                if(score > highScore)
-                {
-                    highScore = score;
-
-                    FILE *file = fopen("highscore.txt","w");
-
-                    if(file != NULL)
-                    {
-                        fprintf(file,"%d",highScore);
-                        fclose(file);
-                    }
+            // EKLENDİ: İsim Girme Ekranı Çizimi (Yarı saydam siyah perde üzerinde)
+            if (gameState == STATE_NAME_ENTRY) {
+                DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.85f));
+                DrawText("YENI REKOR!", 260, 180, 40, GOLD);
+                DrawText(TextFormat("SKOR: %d", score), 320, 240, 30, WHITE);
+                
+                DrawText("ISMINIZI YAZIN VE ENTER'A BASIN", 180, 320, 25, LIGHTGRAY);
+                
+                // İsim girilen kutu
+                DrawRectangle(250, 360, 300, 50, DARKGRAY);
+                DrawRectangleLines(250, 360, 300, 50, GOLD);
+                DrawText(nameInput, 265, 370, 30, WHITE);
+                
+                // Yanıp sönen imleç efekti
+                if ((int)(GetTime() * 2) % 2 == 0) {
+                    DrawText("_", 265 + MeasureText(nameInput, 30), 370, 30, WHITE);
                 }
-                DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.8f));
-                DrawText("RESTART ICIN 'R' VEYA KOLDAN 'Y' TUSUNA BAS", 100, 280, 30, RED);
-                if (IsKeyPressed(KEY_R) || IsGamepadButtonPressed(0, GAMEPAD_BUTTON_RIGHT_FACE_UP)) {
-                    lives = 3; level = 1; score = 0; gameTimer = maxTimer;
-                    for (int i = 0; i < 3; i++) {
-                        for (int j = 0; j < 2; j++) {
-
-                            my_cars[i][j].x = (float)j * 340 + (i * 60);
-                            my_cars[i][j].y = 335.0f + (i * 60);
-                            my_cars[i][j].speed = -2.5f;
-
-                            logs[i][j].x = (float)j * 400;
-                            logs[i][j].y = 140.0f + (i * 65);
-                            logs[i][j].speed = -2.0f;
-
-                            logs[i][j].sinkLevel = 0.0f;
-                            logs[i][j].isBeingSteppedOn = false;
-                        }
-                    }
-                    for (int i = 0; i < 5; i++) zoneOccupied[i] = false;
-                    frogPos = (Vector2){
-                        (float)gameWidth / 2 - (frogImage.width * frogScale) / 2,
-                        (float)gameHeight - (frogImage.height * frogScale) - 15
-                    };
+            }
+            // EKLENDİ: Oyun Bitti Ekranı Çizimi
+            else if (gameState == STATE_GAME_OVER) {
+                DrawRectangle(0, 0, gameWidth, gameHeight, Fade(BLACK, 0.85f));
+                DrawText("OYUN BITTI!", 290, 100, 40, RED);
+                
+                // Liderlik tablosunu ekrana çiz
+                DrawText("TOP 5 SKORLAR", 310, 180, 25, YELLOW);
+                for(int i = 0; i < MAX_SCORES; i++) {
+                    DrawText(TextFormat("%d. %s", i+1, highScores[i].name), 280, 230 + (i*30), 20, WHITE);
+                    DrawText(TextFormat("%d", highScores[i].score), 480, 230 + (i*30), 20, GREEN);
                 }
+
+                DrawText("RESTART ICIN 'R' VEYA KOLDAN 'Y' TUSUNA BAS", 100, 450, 25, LIGHTGRAY);
             }
         }
         EndTextureMode();
